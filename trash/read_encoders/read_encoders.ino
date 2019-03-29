@@ -22,39 +22,53 @@ Encoder L_ENC(ENC_L_A, ENC_L_B);
 void setup()
 {
   Serial.begin(115200);
-  Serial.setTimeout(10); // Without this it runs painfully slow
+  Serial.setTimeout(10); // Without this it runs painfully slowly
 
   Timer3.attachInterrupt(readEncoders).setPeriod(READ_PERIOD).start();
 }
 
+volatile double distanceL_cpy = 0;
+volatile double distanceR_cpy = 0;
+volatile double impulseR_cpy = 0;
+volatile double impulseL_cpy = 0;
+volatile double theta_cpy = 0;
+volatile double coordinates_cpy[] = {0, 0};
+
 volatile double distanceL = 0;
 volatile double distanceR = 0;
+volatile double old_impulseR = 0;
+volatile double old_impulseL = 0;
 volatile double impulseR = 0;
 volatile double impulseL = 0;
 volatile double theta = 0;
 volatile double coordinates[] = {0, 0};
-char b[100];
+char b[200];
 
 volatile double cnt = 0;
 volatile double cnt2 = 0;
+unsigned long t = millis();
 
 void loop()
 {
-
+  
+  if(timeFrom(t) > 1000) {
+    send_impulses();
+    t = millis();
+  }
 }
 
 void sendSerial() {
   noInterrupts();
 
   String str;
-  
+
   str.concat(coordinates[0]);
   str.concat(" ");
   str.concat(coordinates[1]);
-  str.toCharArray(b, 100);
+  str.toCharArray(b, 200);
   Serial.write(b);
   Serial.write("\n");
-  
+
   interrupts();
 }
 
@@ -62,27 +76,23 @@ void readEncoders()
 {
   count();
 
-  // Calculate distance in MM
-//  impulseR = R_ENC.read();
-//  impulseL = L_ENC.read();
-  distanceR = R_ENC.read() * STEP_LENGTH;
-  distanceL = L_ENC.read() * STEP_LENGTH;
+  impulseR = R_ENC.read();
+  impulseL = L_ENC.read();
+
 }
 
 void updateCoordinates()
 {
-  noInterrupts();
 
+  distanceR = (impulseR - old_impulseR) * STEP_LENGTH;
+  distanceL = (impulseL - old_impulseL) * STEP_LENGTH;
+  
   // Calculate new angle and coordinates
   theta = theta + (distanceR - distanceL) / double(WHEELS_DISTANCE_MM);
   coordinates[0] = coordinates[0] + double(distanceR) * sin(theta);
-  coordinates[1] = coordinates[1] + double(distanceL) * cos(theta);
 
-  // Reset distances
-  R_ENC.write(0);
-  L_ENC.write(0);
-
-  interrupts();
+  old_impulseR = impulseR;
+  old_impulseL = impulseL;
 }
 
 long timeFrom(long t)
@@ -106,14 +116,39 @@ void count()
     // Serial.print(", Imp. R: ");
     // Serial.println(impulseR);
 
-    sendSerial();
-
     cnt = 0;
   }
   else
   {
     cnt++;
   }
+}
+
+void send_impulses() {
+//  noInterrupts();
+
+  impulseR_cpy = impulseR;
+  impulseL_cpy = impulseL;
+  coordinates_cpy[0] = coordinates[0];
+  coordinates_cpy[0] = coordinates[0];
+  theta_cpy = theta;
+  
+  String str;
+
+  str.concat(impulseR_cpy);
+  str.concat(" ");
+  str.concat(impulseL_cpy);
+  str.concat(" ");
+  str.concat(coordinates_cpy[0]);
+  str.concat(" ");
+  str.concat(coordinates_cpy[1]);
+  str.concat(" ");
+  str.concat(theta_cpy);
+  str.toCharArray(b, 200);
+  Serial.write(b);
+  Serial.write("\n");
+
+//  interrupts();
 }
 
 String readCommand() {
