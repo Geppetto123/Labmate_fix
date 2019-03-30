@@ -125,7 +125,7 @@ class SerialIO
 
 int main()
 {
-    SerialIO s("/dev/cu.usbmodem57");
+    SerialIO s("/dev/cu.usbmodem60");
 
     s.set_baud(115200);
 

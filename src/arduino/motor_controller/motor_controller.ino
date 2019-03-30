@@ -157,8 +157,8 @@ void add_commands(String str) {
     l_set_point = 6000;
   }
   if ((str == "l" || str == "L")) {
-    r_set_point = 200;
-    l_set_point = 200;
+    r_set_point = 150;
+    l_set_point = 150;
   }
   if (str == " ") {
     if (r_set_point > l_set_point) {
