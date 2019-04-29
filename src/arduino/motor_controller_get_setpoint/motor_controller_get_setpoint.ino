@@ -18,11 +18,11 @@
 #define ENC_L_A 2
 #define ENC_L_B 4
 
-#define DIR_M_L 10
-#define DIR_M_R 11
+#define DIR_M_L 11
+#define DIR_M_R 10
 
-#define L_M 8
-#define R_M 9
+#define L_M 6
+#define R_M 7
 
 DuePWM pwm(PWM_FREQ1, PWM_FREQ2);
 
@@ -74,9 +74,9 @@ void setup()
 
 void loop()
 {
-  String command = read_command();
-  add_commands(command);
-
+  if(Serial.available()) {
+    read_command();
+  }
 }
 
 void read_encoders()
@@ -121,59 +121,7 @@ void control_motors()
   r_last_impulses = r_impulses;
 }
 
-String read_command() {
-  String str;
-  str = Serial.readString();
-  return str;
-}
-
-void add_commands(String str) {
-  if ((str == "w" || str == "W")) {
-    r_set_point += 200;
-    l_set_point += 200;
-  }
-  if ((str == "s" || str == "s")) {
-    r_set_point -= 200;
-    l_set_point -= 200;
-  }
-  if ((str == "p" || str == "P")) {
-    r_set_point = 0;
-    l_set_point = 0;
-  }
-  if ((str == "d" || str == "D")) {
-    r_set_point -= 200;
-    l_set_point += 200;
-  }
-  if ((str == "a" || str == "A")) {
-    r_set_point += 200;
-    l_set_point -= 200;
-  }
-//  if ((str == "3")) {
-//    r_set_point = 3000;
-//    l_set_point = 3000;
-//  }
-//  if ((str == "6")) {
-//    r_set_point = 6000;
-//    l_set_point = 6000;
-//  }
-//  if ((str == "l" || str == "L")) {
-//    r_set_point = 150;
-//    l_set_point = 150;
-//  }
-  if (str == " ") {
-    if (r_set_point > l_set_point) {
-      r_set_point = l_set_point;
-    }
-    else {
-      l_set_point = r_set_point;
-    }
-  }
-}
-
-double rps_to_impulses(double rps) {
-  return rps * COMPUTATION_PERIOD * CPR / (double)(1000000);
-}
-
-double rpm_to_impulses(double rpm) {
-  return rpm * COMPUTATION_PERIOD * CPR / (double)(60 * 1000000);
+void read_command() {
+    l_set_point = Serial.parseInt();
+    r_set_point = Serial.parseInt();
 }
