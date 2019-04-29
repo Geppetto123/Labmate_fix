@@ -1,0 +1,9 @@
+componenti LabMate:
+
+- Monitoraggio carica batterie da arduino (segnale di carica)
+- Conversione 24V -> 19V (alimentazione PC)
+- Conversione 24V -> 5V (alimentazione Arduino)
+- Stabilizzazione caso picchi di tensione (se il motore richiede molta corrente questa non 
+deve essergli erogata se influisce negativamente Arduino e/o PC)
+- PWM servo amplifier
+- Fusibili di protezione

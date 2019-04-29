@@ -12,11 +12,11 @@
 #define PWM_FREQ1 5000
 #define PWM_FREQ2 5000
 
-#define ENC_R_A 3
-#define ENC_R_B 5
+#define ENC_R_A 2
+#define ENC_R_B 3
 
-#define ENC_L_A 2
-#define ENC_L_B 4
+#define ENC_L_A 4
+#define ENC_L_B 5
 
 #define DIR_M_L 10
 #define DIR_M_R 11

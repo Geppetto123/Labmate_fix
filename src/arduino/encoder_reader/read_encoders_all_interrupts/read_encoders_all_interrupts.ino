@@ -5,8 +5,8 @@
 #define READ_PERIOD 100               // timer period in microseconds
 
 #define ENC_R_A 3
-#define ENC_R_B 2
-#define ENC_L_A 5
+#define ENC_R_B 5
+#define ENC_L_A 2
 #define ENC_L_B 4
 
 #define CPR 40000      // Counts Per Rotation
