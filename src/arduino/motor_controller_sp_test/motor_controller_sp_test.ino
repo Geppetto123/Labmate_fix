@@ -16,11 +16,11 @@
 #define ENC_L_A 4
 #define ENC_L_B 5
 
-#define DIR_M_L 10
-#define DIR_M_R 11
+#define DIR_M_R 10
+#define DIR_M_L 11
 
-#define L_M 8
-#define R_M 9
+#define R_M 8
+#define L_M 9
 
 DuePWM pwm(PWM_FREQ1, PWM_FREQ2);
 
@@ -93,7 +93,7 @@ void parse_commands() {      // split the data into its parts
   strtokIndx = strtok(b, " "); // this continues where the previous call left off
   l_set_point = atof(strtokIndx);     // convert this part to an integer
 
-  strtokIndx = strtok(NULL, " ");
+  strtokIndx = strtok(b, " ");
   r_set_point = atof(strtokIndx);     // convert this part to an integer
 }
 
@@ -109,14 +109,14 @@ void control_motors()
   r_input = (r_impulses - r_last_impulses);
 
   //     Set motor direction
-  if (l_set_point < 0)
+  if (l_set_point > 0)
     digitalWrite(DIR_M_L, LOW);
   else
   {
     digitalWrite(DIR_M_L, HIGH);
   }
 
-  if (r_set_point < 0)
+  if (r_set_point > 0)
     digitalWrite(DIR_M_R, LOW);
   else
   {

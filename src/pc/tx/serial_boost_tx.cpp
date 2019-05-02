@@ -133,8 +133,6 @@ class SerialIO
         str += " ";
         str += boost::lexical_cast<string>(right_sp);
 
-        cout << str;
-
         write(str);
     }
 };
@@ -145,15 +143,15 @@ int main()
 
     s.set_baud(115200);
 
-    s.send_commands();
-    // s.get_keyboard_command();
+    // s.send_commands();
+    s.get_keyboard_command();
 
     return 0;
 }
 
 // Compile:
 
-// g++ src/pc/rx/serial_boost.cpp -o serial_boost -lboost_system -lcurses
+// g++ serial_boost_tx.cpp -o serial_boost -lboost_system -lcurses
 
 // Run:
 
