@@ -18,11 +18,11 @@
 #define ENC_L_A 4
 #define ENC_L_B 5
 
-#define DIR_M_L 10
-#define DIR_M_R 11
+#define DIR_M_R 10
+#define DIR_M_L 11
 
-#define L_M 8
-#define R_M 9
+#define R_M 8
+#define L_M 9
 
 DuePWM pwm(PWM_FREQ1, PWM_FREQ2);
 
@@ -91,14 +91,14 @@ void control_motors()
   r_input = (r_impulses - r_last_impulses);
 
   //     Set motor direction
-  if (l_set_point < 0)
+  if (l_set_point > 0)
     digitalWrite(DIR_M_L, LOW);
   else
   {
     digitalWrite(DIR_M_L, HIGH);
   }
 
-  if (r_set_point < 0)
+  if (r_set_point > 0)
     digitalWrite(DIR_M_R, LOW);
   else
   {
@@ -147,6 +147,9 @@ void add_commands(String str) {
   if ((str == "a" || str == "A")) {
     r_set_point += 200;
     l_set_point -= 200;
+  }
+  if ((str == "c" || str == "C")) {
+    r_set_point += 200;
   }
 //  if ((str == "3")) {
 //    r_set_point = 3000;

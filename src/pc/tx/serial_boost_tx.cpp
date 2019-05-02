@@ -43,6 +43,26 @@ class SerialIO
         m_port.set_option(boost::asio::serial_port_base::baud_rate(b_rate));
     }
 
+    void read()
+    {
+        const int BUFFSIZE = 200;
+        char read_msg_[BUFFSIZE];
+        int read_size = 0;
+        stringstream ss;
+
+        while (read_msg_[read_size - 1] != '\n')
+        {
+            read_msg_[read_size] = 0;
+            ss << read_msg_;
+            read_size = m_port.read_some(boost::asio::buffer(read_msg_, BUFFSIZE));
+        }
+        // cout << ss.str();
+
+        istringstream iss(ss.str());
+
+        cout << ss.str() << endl;
+    }
+
     void write(string input)
     {
         const int BUFFSIZE = 200;
@@ -91,10 +111,6 @@ class SerialIO
             case 's':
                 speed_to_sp(-0.1, 0);
                 break;
-            case 'R':
-            case 'r':
-                speed_to_sp(0, 0.1);
-                break;
             default:
                 speed_to_sp(0, 0);
                 break;
@@ -102,9 +118,10 @@ class SerialIO
         }
     }
 
-    // linear_speed [m/s], angular_speed [rad/s]
-    void speed_to_sp(double linear_speed, double angular_speed)
+    // linear_speed [m/s], angular_speed_deg [degrees/s]
+    void speed_to_sp(double linear_speed, double angular_speed_deg)
     {
+        double angular_speed = angular_speed_deg*(3.14159265359)/180; // deg to rad conversion
         double l_linear_speed = linear_speed - angular_speed * WHEELS_DISTANCE_MM / 2;
         double r_linear_speed = linear_speed + angular_speed * WHEELS_DISTANCE_MM / 2;
 
@@ -116,7 +133,7 @@ class SerialIO
         str += " ";
         str += boost::lexical_cast<string>(right_sp);
 
-        cout << str << endl;
+        cout << str;
 
         write(str);
     }
@@ -124,7 +141,7 @@ class SerialIO
 
 int main()
 {
-    SerialIO s("/dev/cu.usbmodem1441");
+    SerialIO s("/dev/cu.usbmodem1411");
 
     s.set_baud(115200);
 

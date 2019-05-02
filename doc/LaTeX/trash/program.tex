@@ -1,0 +1,309 @@
+\chapter{Software}
+The software in this project regards differents devices:
+\begin{itemize}
+    \item Software for the Arduino responsible for reading the encoders
+    \item Software for the Arduino responsible for driving the motors
+    \item Software for the PC onboards
+    \item Software for the remote PC 
+\end{itemize}
+
+\section{Software: encoder side Arduino}
+\paragraph{}
+The Arduino responsible for reading the encoders uses a library that manages channels A and B of the encoder and transforms it in impulses. [ref]
+\par
+The encoder needs to be read periodically in order to work [ref], so it was decided to use Arduino's embedded timer. 
+\par
+The choice of not using interrupts was taken as using interrupts to read the encoders leads to misreadings due to impulse overlapping.
+
+\subsection{void setup()}
+The timer is managed by a library [source] which generates an interrupt periodically.
+
+\begin{lstlisting}[language=C]
+#define READ_PERIOD 100               // timer period in microseconds
+
+void setup()
+{
+    Serial.begin(115200);
+    Timer3.attachInterrupt(read_encoders).setPeriod(READ_PERIOD).start();
+}
+\end{lstlisting}
+
+The function called by the Timer is read\_encoders(), wich updates the encoder's impulses.
+
+\subsection{void loop()}
+The loop is responsible for computing the odometry and sending at every 1000 iterations the coordinates over serial.
+
+\begin{lstlisting}[language=C]
+void loop()
+{
+  // Odometry can be computed only if the distance traveled has been updated
+  if (odometry == true)
+  {
+    odometry == false;
+    compute_odometry();
+    odometry_cnt++;
+    if (odometry_cnt >= 1000) {
+      // send_coordinates();
+      // send_impulses();
+      send_all();
+    }
+    odometry_done = true;
+  }
+}
+\end{lstlisting}
+
+\subsection{read\_encoders()}
+The function read\_encoders() is responsible for updating the encoder's impulses and updating the distance traveled by each encoder at every 100 iterations, necessary for the odometry computation.
+
+\begin{lstlisting}[language=C]
+void read_encoders()
+{
+  r_enc = R_ENC.read(); // Reads right encoder's impulses
+  l_enc = L_ENC.read(); // Reads left encoder's impulses
+
+  cnt++;
+
+  // Updates the odometry variables every 100 iterations and only if the last odometry computation has finished
+  if (cnt >= 100 && odometry_done)
+  {
+    l_enc_cpy = l_enc * CPR_CORRECTION; // by multiplying l_enc by CPR_CORRECTION it is taken in consideration the gear ratio error
+    r_enc_cpy = r_enc * CPR_CORRECTION;
+
+    // Calculate the distance in impulses traveled by each encoder
+    delta_l_enc = l_enc_cpy - l_enc_old;
+    delta_r_enc = r_enc_cpy - r_enc_old;
+
+    odometry = true; // Odometry permission flag. If set to true, void loop() can compute the odometry
+    odometry_done = false; // Resets odometry completion flag
+    cnt = 0;
+    
+    l_enc_old = l_enc_cpy; 
+    r_enc_old = r_enc_cpy;
+  }
+}
+\end{lstlisting}
+
+\subsection{compute\_odometry()}
+This function is responsible for taking the distance traveled by each encoder and calculating the position of the robot based on it.
+
+\begin{lstlisting}[language=C]
+void compute_odometry()
+{
+    // transform the distance traveled from impulses to MM
+    r_distance = delta_r_enc * R_STEP_LENGTH;
+    l_distance = delta_l_enc * L_STEP_LENGTH;
+      
+    // Compute coordinates and direction
+    theta = theta + (l_distance - r_distance) / double(WHEELS_DISTANCE_MM);
+    coordinates[0] = coordinates[0] + double(r_distance) * sin(theta);
+    coordinates[1] = coordinates[1] + double(l_distance) * cos(theta);
+}
+\end{lstlisting}
+
+\subsection{Sending functions}
+These functions send over serial different values separated by space.
+
+\subsubsection{send\_coordinates()}
+
+\begin{lstlisting}[language=C]
+/* 
+  Send coordinates separated by space to serial port. 
+*/
+void send_coordinates()
+{
+  String str;
+  str.concat(coordinates[0]);
+  str.concat(" ");
+  str.concat(coordinates[1]);
+  str.toCharArray(b, 200);
+  Serial.write(b);
+  Serial.write("\n");
+}
+\end{lstlisting}
+
+
+\subsubsection{send\_impulses()}
+
+\begin{lstlisting}[language=C]
+/* 
+  Send left and right impulses separated by space to serial port. 
+*/
+void send_impulses() {
+  String str;
+  str.concat(l_enc_cpy);
+  str.concat(" ");
+  str.concat(r_enc_cpy);
+  str.toCharArray(b, 200);
+  Serial.write(b);
+  Serial.write("\n");
+}
+\end{lstlisting}
+
+\subsubsection{send\_all()}
+
+\begin{lstlisting}[language=C]
+/* 
+  Send left/right impulses, coordinates and rotational angle separated by space to serial port. 
+*/
+void send_all() {
+  String str;
+  str.concat(l_enc_cpy);
+  str.concat(" ");
+  str.concat(r_enc_cpy);
+  str.concat(" ");
+  str.concat(coordinates[0]);
+  str.concat(" ");
+  str.concat(coordinates[1]);
+  str.concat(" ");
+  str.concat(theta*180/PI);
+  str.toCharArray(b, 200);
+  Serial.write(b);
+  Serial.write("\n");
+}
+\end{lstlisting}
+
+\section{Software: motor side Arduino}
+An Arduino controls the motors by getting setpoint (in impulses) over USB and assigning it to a PID controller, which changes the values to be passed to the motors as a PWM signal.
+\\
+The program works as follows:
+\begin{itemize}
+    \item Get sepoints from serial (sent by the onboard PC)
+    \item Read Encoder's impulses
+    \item Compute PID
+    \item Send PWM signal to the motors
+\end{itemize}
+
+\subsection{void setup()}
+This time two timers were used, one that invocates a function to read the encoder's impulses and one that invocates a function 
+that controls the motors.
+\\ \\
+Note that READ\_PERIOD should be a smaller period than COMPUTATION\_PERIOD as the function control\_motors depends on the updated 
+values of the encoders.
+
+\begin{lstlisting}[language=C]
+void setup()
+{
+  Serial.begin(115200);
+  Serial.setTimeout(10); // In order to get the command over serial immediatly, waits only 10ms
+
+  l_pid.SetMode(AUTOMATIC);
+  r_pid.SetMode(AUTOMATIC);
+
+  Timer3.attachInterrupt(control_motors).setPeriod(COMPUTATION_PERIOD).start();
+  Timer2.attachInterrupt(read_encoders).setPeriod(READ_PERIOD).start();
+
+  pinMode(DIR_M_L, OUTPUT);
+  pinMode(DIR_M_R, OUTPUT);
+  digitalWrite(DIR_M_L, HIGH);
+  digitalWrite(DIR_M_R, HIGH);
+
+  pwm.pinFreq1(L_M); // Pin freq set to "pwm_freq1" on clock A
+  pwm.pinFreq1(R_M); // Pin freq set to "pwm_freq1" on clock B
+}
+\end{lstlisting}
+
+\subsection{void loop()}
+At every iteration reads the setpoints passed via USB.
+\begin{lstlisting}[language=C]
+void loop()
+{
+    read_command();
+}
+\end{lstlisting}
+
+\subsection{read\_command()}
+
+\begin{lstlisting}[language=C]
+void read_command()
+{
+  int l_sp;
+  int r_sp;
+
+  if (Serial.available())
+  {
+    l_sp = Serial.parseInt();
+    l_rp = Serial.parseInt();
+
+    if(l_sp != 0) {
+      l_set_point = l_sp;
+    }
+
+    // Zero corresponds to 999999999 because when nothing is being sent the serial keeps reading 0
+    if(l_sp == 999999999) {
+      l_set_point = 0;
+    }
+
+    if(r_sp != 0) {
+      r_set_point = r_sp;
+    }
+
+    // Zero corresponds to 999999999 because when nothing is being sent the serial keeps reading 0
+    if(r_sp == 999999999) {
+      r_set_point = 0;
+    }
+  }
+}
+\end{lstlisting}
+
+\subsection{control\_motors()}
+
+\begin{lstlisting}[language=C]
+void control_motors()
+{
+  l_input = (l_impulses - l_last_impulses);
+  r_input = (r_impulses - r_last_impulses);
+
+  //     Set motor direction
+  if (l_set_point < 0)
+    digitalWrite(DIR_M_L, LOW);
+  else
+  {
+    digitalWrite(DIR_M_L, HIGH);
+  }
+
+  if (r_set_point < 0)
+    digitalWrite(DIR_M_R, LOW);
+  else
+  {
+    digitalWrite(DIR_M_R, HIGH);
+  }
+
+  l_input = abs(l_input);
+  r_input = abs(r_input);
+
+  r_set_point_abs = abs(r_set_point);
+  l_set_point_abs = abs(l_set_point);
+
+  (void)l_pid.Compute();
+  (void)r_pid.Compute();
+
+  pwm.pinDuty(L_M, l_duty);
+  pwm.pinDuty(R_M, r_duty);
+
+  l_last_impulses = l_impulses;
+  r_last_impulses = r_impulses;
+}
+\end{lstlisting}
+
+\subsection{read\_encoders()}
+
+\begin{lstlisting}[language=C]
+void read_encoders()
+{
+  r_impulses = R_ENC.read();
+  l_impulses = L_ENC.read();
+}
+\end{lstlisting}
+
+
+\section{Software: onboard PC}
+
+\section{Software: remote PC}
+
+\subsection{read\_command}
+
+\begin{lstlisting}[language=C]
+\end{lstlisting}
+
+\begin{lstlisting}[language=C]
+\end{lstlisting}

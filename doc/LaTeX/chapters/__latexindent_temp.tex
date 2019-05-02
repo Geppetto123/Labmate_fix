@@ -1,0 +1,107 @@
+\chapter{Software}
+The software in this project regards differents devices:
+\begin{itemize}
+    \item Software for the Arduino responsible for reading the encoders
+    \item Software for the Arduino responsible for driving the motors
+    \item Software for the PC onboards
+    \item Software for the remote PC 
+\end{itemize}
+
+\section{Software: Encoder side Arduino}
+As mentioned before, the Arduino responsible for reading the encoders uses a library that manages channels A and B of the encoder and transforms it in impulses. 
+\\ \\
+The encoder needs to be read periodically in order to work [reference to encoder library], so it was used a timer. 
+\\
+Using interrupts to read the encoders leads to impulse loss due to impulse overlapping. 
+\\
+
+\subsection{Timer definition}
+The timer is managed by a library [source] which generates an interrupt periodically.
+
+\begin{lstlisting}[language=C]
+#define READ_PERIOD 100               // timer period in microseconds
+
+void setup()
+{
+    Serial.begin(115200);
+    Timer3.attachInterrupt(read_encoders).setPeriod(READ_PERIOD).start();
+}
+\end{lstlisting}
+
+The function called by the Timer is read\_encoders(), wich updates the encoder's impulses.
+
+\subsection{Function read\_encoders()}
+The function read\_encoders() is responsible for updating the encoder's impulses and updating the distance traveled by each encoder at every 100 iterations, necessary for the odometry computation.
+
+\begin{lstlisting}[language=C]
+void read_encoders()
+{
+  r_enc = R_ENC.read(); // Read the impulses for the right encoder
+  l_enc = L_ENC.read(); // Read the impulses for the left encoder
+
+  cnt++;
+  // Changes the odometry computation variables every 100 iterations and only if the last odometry computation has finished
+  if (cnt >= 100 && odometry_done)
+  {
+    l_enc_cpy = l_enc * CPR_CORRECTION; // by multiplying l_enc by CPR_CORRECTION it is taken in consideration the gear ratio error
+    r_enc_cpy = r_enc * CPR_CORRECTION;
+
+    // Calculate the distance in impulses traveled by each encoder
+    delta_l_enc = l_enc_cpy - l_enc_old;
+    delta_r_enc = r_enc_cpy - r_enc_old;
+
+    odometry = true;
+    odometry_done = false; // Resets odometry completion flag
+    cnt = 0;
+    
+    l_enc_old = l_enc_cpy; 
+    r_enc_old = r_enc_cpy;
+  }
+}
+\end{lstlisting}
+
+\subsection{Function compute\_odometry()}
+This function is responsible for taking the distance traveled by each encoder and calculating the position of the robot based on it.
+
+\begin{lstlisting}[language=C]
+void compute_odometry()
+{
+    // transform the distance traveled from impulses to MM
+    r_distance = delta_r_enc * R_STEP_LENGTH;
+    l_distance = delta_l_enc * L_STEP_LENGTH;
+      
+    // Compute coordinates and direction
+    theta = theta + (l_distance - r_distance) / double(WHEELS_DISTANCE_MM);
+    coordinates[0] = coordinates[0] + double(r_distance) * sin(theta);
+    coordinates[1] = coordinates[1] + double(l_distance) * cos(theta);
+}
+\end{lstlisting}
+
+\subsection{The loop}
+The loop is responsible for computing the odometry and sending at every 1000 iterations the coordinates over serial.
+
+\begin{lstlisting}[language=C]
+    void loop()
+    {
+      if (odometry == true)
+      {
+        odometry == false;
+        compute_odometry();
+        delta_l_enc = 0;
+        delta_r_enc = 0;
+        odometry_cnt++;
+        if (odometry_cnt >= 1000) {
+          // send_coordinates();
+          // send_impulses();
+          send_all();
+        }
+        odometry_done = true;
+      }
+    }
+\end{lstlisting}
+
+\section{Software: Motor side Arduino}
+
+\section{Software: Onboard PC}
+
+\section{Software: Remote PC}

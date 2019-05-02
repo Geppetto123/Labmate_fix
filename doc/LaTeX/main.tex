@@ -1,0 +1,73 @@
+\documentclass[12pt]{report}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage[a4paper, width=150mm, top=30mm, bottom=30mm, left=30mm, right=30mm]{geometry}
+\usepackage{fancyhdr}
+\usepackage[english]{babel}
+\usepackage{array} % used for tables
+\usepackage{color}
+\usepackage{tabularx}
+
+% used for code blocks
+
+\usepackage{listings} 
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\linespread{1} \tiny,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+ 
+\lstset{style=mystyle}
+
+% end use for code blocks
+
+\pagestyle{fancy}
+\renewcommand{\baselinestretch}{1.5} 
+\graphicspath{ {images/} }
+
+
+\title{
+    {Differential drive robots: An Arduino-based motion control system}\\
+    {\large Università degli Studi di Bergamo}\\
+    {\vspace{4ex}}
+    {\includegraphics[width=0.2\textwidth]{UNIBG_logo.jpg}} 
+}
+\author{Lorenzo Nava}
+\date{15 July 2018}
+
+
+\begin{document}
+    
+    \maketitle
+
+    \input{chapters/abstract.tex}
+
+    \tableofcontents
+
+    \input{chapters/introduction.tex}
+
+    \input{chapters/hardware.tex}
+
+    \input{chapters/software.tex}
+
+
+\end{document}

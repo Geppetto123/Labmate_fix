@@ -4,10 +4,10 @@
 #define ENCODER_DO_NOT_USE_INTERRUPTS // Definition for the library Encoder.h
 #define READ_PERIOD 100               // timer period in microseconds
 
-#define ENC_R_A 3
-#define ENC_R_B 5
-#define ENC_L_A 2
-#define ENC_L_B 4
+#define ENC_R_B 3
+#define ENC_R_A 5
+#define ENC_L_B 2
+#define ENC_L_A 4
 
 #define CPR 40000      // Counts Per Rotation
 #define WHEELS_DISTANCE_MM 335
@@ -54,6 +54,7 @@ volatile double odometry_cnt = 0;
 
 void loop()
 {
+  // Odometry can be computed only if the distance traveled has been updated
   if (odometry == true)
   {
     odometry == false;
@@ -70,6 +71,9 @@ void loop()
   }
 }
 
+/* 
+  Send coordinates separated by space to serial port. 
+*/
 void send_coordinates()
 {
   String str;
@@ -81,6 +85,9 @@ void send_coordinates()
   Serial.write("\n");
 }
 
+/* 
+  Send left and right impulses separated by space to serial port. 
+*/
 void send_impulses() {
   String str;
   str.concat(l_enc_cpy);
@@ -91,6 +98,9 @@ void send_impulses() {
   Serial.write("\n");
 }
 
+/* 
+  Send left/right impulses, coordinates and rotational angle separated by space to serial port. 
+*/
 void send_all() {
   String str;
   str.concat(l_enc_cpy);
@@ -107,6 +117,9 @@ void send_all() {
   Serial.write("\n");
 }
 
+/* 
+  Save to the variables the new encoder value
+*/
 void read_encoders()
 {
   r_enc = R_ENC.read();
@@ -116,7 +129,7 @@ void read_encoders()
 
   if (cnt >= 100 && odometry_done)
   {
-    l_enc_cpy = l_enc * CPR_CORRECTION; 
+    l_enc_cpy = l_enc * CPR_CORRECTION; // by multiplying l_enc by CPR_CORRECTION it is taken in consideration the error in gear ratio
     r_enc_cpy = r_enc * CPR_CORRECTION;
 
     delta_l_enc = l_enc_cpy - l_enc_old;

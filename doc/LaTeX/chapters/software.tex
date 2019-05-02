@@ -1,0 +1,221 @@
+\chapter{Software}
+In this chapter it will shown the software for each hardware component exposed in the Hardware chapter.
+
+\section{Position tracking Arduino}
+This Arduino takes as input channels A and B for both left and right encoders. By using a technic of odometry calculation it is able to determine the current 
+coordinates and direction of the robot relative to a starting point. These coordinates and direction are transmitted via USB.
+\\ \\
+
+\subsection{How it works}
+In this implementation both the timer and void loop() are used. The timer handles the reading of the encoders while the void loop() is used 
+to send the coordinates over USB periodically. The use of the timer, or rather of timed interrupts is handled by the <Timer.h> library which calls the function assigned to 
+one of Arduino's (Arduino Due) timers once in a period defined by the code.
+\\
+The reading of the encoders is handled by the library <Encoder.h> [ref], which updates the impulses of the encooders every time the function Encoder.read() is called. As it was decided 
+on not to use interrupts to read the encoders as it caused issues due to impulse overlapping, the function Encoder.read() needs to be called periodically so library can compare 
+channel A and channel B values to detect an impulse and its direction (backwards or forward). This can be a limitation depending on the wheels speed, in this application the wheels speed 
+is not relatively high so the timer mounted on the Arduino can easily handle the operation of reading all the impulses without any misreadings.
+\\ \\
+The odometry calculation is obtained by trigonometry. The resulting formulae are:
+\\
+\begin{equation}
+    \theta_{i+1} = \theta_{i} + \frac{(\Delta d_{left} - \Delta d_{right})}{d_{wheels}}
+\end{equation}
+
+\begin{equation}
+    x_{i + 1} = x_{i} + \Delta d_{right} \cdot \sin(\theta)
+\end{equation}
+
+\begin{equation}
+    y_{i + 1} = y_{i} + \Delta d_{left} \cdot \cos(\theta)
+\end{equation}
+\\
+$\theta_{i}$: direction of the robot compared to $x$ axis
+\\
+$\Delta d_{left} = d_{{left}_{i+1}} - d_{{left}_{i}}$: linear distance traveled by left wheel from last reading $i$
+\\
+$\Delta d_{right} = d_{{right}_{i+1}} - d_{{right}_{i}}$: linear distance traveled by right wheel from last reading $i$
+\\
+$d_{wheels}$: distance between the two driving wheels
+\\
+$x$: $x$ axis coordinate
+\\
+$y$: $y$ axis coordinate
+\\ \\
+There are three functions that send data relative to the position of the robot. Each function sends a specific set of data (coordinates, direction and/or impulses), since not all information is useful all the time. The data is sent 
+over USB by concatenating each piece of data to a string separated by a space. The order of the data must be known a priori by the receiver as there is no identifier for each piece of data. The only way of identifying the arriving 
+data is by knowing the order by which the data was sent.
+
+\subsection{Code in detail}
+Here some pieces of code will be exposed in detail. Only some pieces of code are shown here, for the entire source code please refer to [appendix x].
+
+\subsubsection{void setup()}
+Here it is shown the assignment of the function read\_encoders() to Timer3. In other words, at every READ\_PERIOD defined by the program the function read\_encoders() will be called.
+
+\begin{lstlisting}[language=C]
+#define READ_PERIOD 100               // timer period in microseconds
+
+void setup()
+{
+    Serial.begin(115200);
+    Timer3.attachInterrupt(read_encoders).setPeriod(READ_PERIOD).start();
+}
+\end{lstlisting}
+
+
+\subsubsection{void loop()}
+The loop allows the odometry computation only when the odometry flag is set to true, that is when the distance traveled by each wheel has been updated. This is necessary as the odometry cannot be computed 
+without the correct detection of distance traveled by the wheels.
+\\
+The computed odometry data is only sent once every 1000 iterations of the void loop(), in such a way that the transmission of data over serial do not slow down the odometry computation.
+
+\begin{lstlisting}[language=C]
+void loop()
+{
+  // Odometry can be computed only if the distance traveled has been updated
+  if (odometry == true)
+  {
+    odometry == false;
+    compute_odometry();
+    odometry_cnt++;
+    if (odometry_cnt >= 1000) {
+      // send_coordinates();
+      // send_impulses();
+      send_all();
+    }
+    odometry_done = true;
+  }
+}
+\end{lstlisting}
+
+
+\subsubsection{compute\_odometry()}
+The odometry is calculated using the formulae mentioned before.
+
+\begin{lstlisting}[language=C]
+void compute_odometry()
+{
+    // transform the distance traveled from impulses to MM
+    r_distance = delta_r_enc * R_STEP_LENGTH;
+    l_distance = delta_l_enc * L_STEP_LENGTH;
+      
+    // Compute coordinates and direction
+    theta = theta + (l_distance - r_distance) / double(WHEELS_DISTANCE_MM);
+    coordinates[0] = coordinates[0] + double(r_distance) * sin(theta);
+    coordinates[1] = coordinates[1] + double(l_distance) * cos(theta);
+}
+\end{lstlisting}
+
+
+\subsubsection{read\_encoders()}
+The distance traveled by each wheel is calculated no more than once at every 100 times the impulses are read, it may be read less than one time every 100 if the last odometry compuation have not finished yet. 
+This is achieved by using the flag odometry\_done that is set to true every time the odometry computation is done. The distance traveled by the wheels is computed less than once every 100 times the impulses are read 
+by the only fact that if it was calculated at every impulse it would lead to value of $\theta$ too small to be accurate enough for the odometry computation.
+\begin{lstlisting}[language=C]
+void read_encoders()
+{
+  r_enc = R_ENC.read(); // Reads right encoder's impulses
+  l_enc = L_ENC.read(); // Reads left encoder's impulses
+
+  cnt++;
+
+  // Updates the odometry variables every 100 iterations and only if the last odometry computation has finished
+  if (cnt >= 100 && odometry_done)
+  {
+    l_enc_cpy = l_enc * CPR_CORRECTION; // by multiplying l_enc by CPR_CORRECTION it is taken in consideration the gear ratio error
+    r_enc_cpy = r_enc * CPR_CORRECTION;
+
+    // Calculate the distance in impulses traveled by each encoder
+    delta_l_enc = l_enc_cpy - l_enc_old;
+    delta_r_enc = r_enc_cpy - r_enc_old;
+
+    odometry = true; // Odometry permission flag. If set to true, void loop() can compute the odometry
+    odometry_done = false; // Resets odometry completion flag
+    cnt = 0;
+    
+    l_enc_old = l_enc_cpy; 
+    r_enc_old = r_enc_cpy;
+  }
+}
+\end{lstlisting}
+
+\subsubsection{Sending functions}
+The different types of data that can be sent over USB:
+
+\textit{send\_coordinates()}
+
+\begin{lstlisting}[language=C]
+/* 
+  Send coordinates separated by space to serial port. 
+*/
+void send_coordinates()
+{
+  String str;
+  str.concat(coordinates[0]);
+  str.concat(" ");
+  str.concat(coordinates[1]);
+  str.toCharArray(b, 200);
+  Serial.write(b);
+  Serial.write("\n");
+}
+\end{lstlisting}
+
+
+\textit{send\_impulses()}
+
+\begin{lstlisting}[language=C]
+/* 
+  Send left and right impulses separated by space to serial port. 
+*/
+void send_impulses() {
+  String str;
+  str.concat(l_enc_cpy);
+  str.concat(" ");
+  str.concat(r_enc_cpy);
+  str.toCharArray(b, 200);
+  Serial.write(b);
+  Serial.write("\n");
+}
+\end{lstlisting}
+
+\textit{send\_all()}
+
+\begin{lstlisting}[language=C]
+/* 
+  Send left/right impulses, coordinates and rotational angle separated by space to serial port. 
+*/
+void send_all() {
+  String str;
+  str.concat(l_enc_cpy);
+  str.concat(" ");
+  str.concat(r_enc_cpy);
+  str.concat(" ");
+  str.concat(coordinates[0]);
+  str.concat(" ");
+  str.concat(coordinates[1]);
+  str.concat(" ");
+  str.concat(theta*180/PI);
+  str.toCharArray(b, 200);
+  Serial.write(b);
+  Serial.write("\n");
+}
+\end{lstlisting}
+
+\section{Wheels driving Arduino Due}
+This Arduino takes as input channels A and B for both left and right encoders. Also, it takes as input the setpoints for left and right motors via USB. The goal of this Arduino 
+is to bring the wheels to the received setpoints. This is achieved by a PID controller that sends to the motors PWM signal.
+
+\subsection{How it works}
+The the Arduino has two timers, one for reading the encoders, just like the other Arduino and one timer triggers a function responsible for computing the PID, which changes 
+the outputs associated with the motors (PWM signals), that is changing the wheels speed. Despite using two timers, the Arduino also takes advantage of the void loop() function, this time to 
+get the setpoints from the serial port.
+\\ \\
+The readings of the encoders, just as the other arduino, is handled by the library $<$Encoder.h$>$, and againg just like the other Arduino, the timer is handled by the library $<$Timer.h$>$.
+\\ \\
+The PID controller is handled by the library $<$PID.h$>$, in which by given a setpoint and the encoders impulses it returns an integer ranging from 0 to 255 wich corresponds the duty cycle value taken by the PWM object that will activate 
+the pin in PWM mode for controlling the motors. The PWM class is given by the $<$PWM.h$>$ library.
+
+\subsection{Code in detail}
+Here some pieces of code will be exposed in detail. Only some pieces of code are shown here, for the entire source code please refer to [appendix x].
+
+\subsubsection{void setup()}

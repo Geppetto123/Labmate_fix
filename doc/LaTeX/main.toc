@@ -1,0 +1,31 @@
+\babel@toc {english}{}
+\contentsline {chapter}{\numberline {1}Introduction}{3}
+\contentsline {chapter}{\numberline {2}Hardware composition}{4}
+\contentsline {section}{\numberline {2.1}Componentry overview}{4}
+\contentsline {subsection}{\numberline {2.1.1}LabMate}{4}
+\contentsline {subsection}{\numberline {2.1.2}Control unit}{4}
+\contentsline {section}{\numberline {2.2}Components in detail}{5}
+\contentsline {subsection}{\numberline {2.2.1}Motors}{5}
+\contentsline {subsubsection}{Technical specifications}{5}
+\contentsline {subsection}{\numberline {2.2.2}Encoders}{6}
+\contentsline {subsubsection}{Gear ratio issue}{6}
+\contentsline {subsubsection}{Technical specifications}{6}
+\contentsline {subsection}{\numberline {2.2.3}Wheels}{6}
+\contentsline {subsection}{\numberline {2.2.4}Arduino Due}{7}
+\contentsline {subsubsection}{Technical specifications}{7}
+\contentsline {subsubsection}{Position tracking Arduino Due}{7}
+\contentsline {subsubsection}{Wheels driving Arduino Due}{8}
+\contentsline {subsection}{\numberline {2.2.5}PC}{8}
+\contentsline {chapter}{\numberline {3}Software}{9}
+\contentsline {section}{\numberline {3.1}Position tracking Arduino}{9}
+\contentsline {subsection}{\numberline {3.1.1}How it works}{9}
+\contentsline {subsection}{\numberline {3.1.2}Code in detail}{11}
+\contentsline {subsubsection}{void setup()}{11}
+\contentsline {subsubsection}{void loop()}{11}
+\contentsline {subsubsection}{compute\_odometry()}{11}
+\contentsline {subsubsection}{read\_encoders()}{12}
+\contentsline {subsubsection}{Sending functions}{12}
+\contentsline {section}{\numberline {3.2}Wheels driving Arduino Due}{13}
+\contentsline {subsection}{\numberline {3.2.1}How it works}{13}
+\contentsline {subsection}{\numberline {3.2.2}Code in detail}{14}
+\contentsline {subsubsection}{void setup()}{14}

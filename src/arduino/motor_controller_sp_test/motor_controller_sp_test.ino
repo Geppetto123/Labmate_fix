@@ -50,6 +50,8 @@ double r_input = 0;
 PID l_pid(&l_input, &l_duty, &l_set_point_abs, l_kp, l_ki, l_kd, DIRECT);
 PID r_pid(&r_input, &r_duty, &r_set_point_abs, r_kp, r_ki, r_kd, DIRECT);
 
+char b[200];
+
 void setup()
 {
   Serial.begin(115200);
@@ -72,7 +74,27 @@ void setup()
 
 void loop()
 {
-  read_command();
+  if (Serial.available() > 0) {
+    receive_commands();
+    parse_commands();
+  }
+}
+
+void receive_commands() {
+  String str;
+  str = Serial.readString();
+  str.toCharArray(b, 200);
+}
+
+void parse_commands() {      // split the data into its parts
+
+  char * strtokIndx; // this is used by strtok() as an index
+
+  strtokIndx = strtok(b, " "); // this continues where the previous call left off
+  l_set_point = atof(strtokIndx);     // convert this part to an integer
+
+  strtokIndx = strtok(NULL, " ");
+  r_set_point = atof(strtokIndx);     // convert this part to an integer
 }
 
 void read_encoders()
@@ -115,35 +137,4 @@ void control_motors()
 
   l_last_impulses = l_impulses;
   r_last_impulses = r_impulses;
-}
-
-void read_command()
-{
-  float l_sp;
-  float r_sp;
-
-//  if (Serial.available())
-//  {
-    l_sp = Serial.parseFloat();
-    r_sp = Serial.parseFloat();
-
-    if (l_sp != 0 && l_sp != 999999999) {
-      l_set_point = l_sp;
-    }
-
-    // Zero corresponds to 999999999 because when nothing is being sent the serial keeps reading 0
-    if (l_sp == 999999999) {
-      l_set_point = 0;
-    }
-
-    if (r_sp != 0 && r_sp != 999999999) {
-      r_set_point = r_sp;
-    }
-
-    // Zero corresponds to 999999999 because when nothing is being sent the serial keeps reading 0
-    if (r_sp == 999999999) {
-      r_set_point = 0;
-    }
-//  }
-
 }

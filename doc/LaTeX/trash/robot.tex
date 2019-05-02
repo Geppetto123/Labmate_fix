@@ -1,0 +1,55 @@
+\chapter{The robot}
+The robot used for this application is the LabMate, an old robot that used to have a dated control unit which was repurposed by changing its 
+control unit. [reference]
+
+\section{Components}
+For a more comprehensive understanding of the components please see [reference].
+
+\subsection{Motor}
+Two brushed DC motors operate in parallel to move the robot.
+
+\begin{center}
+    \begin{table}[h]
+        \begin{tabular} {| m{20em} | m{20em} |}
+            \hline
+            \textbf{Property} &  \textbf{Value} \\
+            \hline
+            Voltage & 22V \\
+            \hline
+            Current & 9A \\
+            \hline
+            Maximux speed & 1300 rpm \\
+            \hline
+            Maximux power & 0.13 KW \\
+            \hline
+            Wheel radius & 75 MM \\
+            \hline
+            Reduction wheel:motor & 0:10 \\
+            \hline
+        \end{tabular}
+    \end{table}
+\end{center}
+
+\subsection{Encoder}
+The relative encoder HEDS 9000 is used to get the impulses of each wheel. 
+\\ \\
+Each encoder has two inputs and two outputs. The inputs are the "plus" and "minus" for the alimentation. The outputs are "Channel A" and "Channel B", the encoder 
+uses two channels in order to know if the wheel is going forward or backwards.
+\\ \\
+The reading of the impulses is performed by an Arduino Due, which uses a library [reference] that performs all the management of channels A and B, the only thing that it returns is the number of impulses.
+
+\subsubsection{Wheel reduction issue}
+During the test phase a problem was found in the readings of the encoders, probably because the wheel reduction is not exactly 1:10, 
+which leads the encoders to have a 40440 CPR and not a 40000 CPR, which 
+should be the correct CPR for the wheel ($CPR_{wheel} = CPR_{encoder} \cdot G_{ratio}$).
+
+\subsection{Arduino}
+There are two Arduino boards mounted in the robot. 
+\\ \\
+One Arduino is responsible for computing the coordinates and sending them over USB.
+\\ \\
+Another Arduino is responsible for getting over USB the wheels speed and controlling the motor accordingly.
+\\ \\
+It was chosen to use two separate Arduino boards as one single board couldn't handle the computation operation at the same time as it was controlling the motors.
+
+

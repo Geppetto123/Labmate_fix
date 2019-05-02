@@ -1,0 +1,17 @@
+\chapter*{Abstract}
+This paper illustrates the process, functions and tools used in order to achieve a core base for future sensor implementation in laboratory ausiliary robots.
+\\ \\
+The code reported throughout this paper is made for a specific set of components, it is not a general library, it is meant be used as a \textbf{base} for general purpose robots that share similar characteristics
+ with the robot used here or it could be used to replicate the same robot by using the code and the components reported here.
+\\ \\
+It was decided not to create a library in order to make things as simple as possible both to read and integrate. Previous projects [reference], created general purpose libraries, but any correction and/or modification 
+to the code is painful and generate loads of errors.
+\\ \\
+The robot is able to:
+\begin{itemize}
+    \item send (remotely) its position (relative to a starting point)
+    \item receive (remotely) a twist command where its linear and angular speed are set
+\end{itemize}
+
+In order to achieve the results mentioned here it were used odometry calculation...
+
